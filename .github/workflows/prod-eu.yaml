@@ -1,34 +1,38 @@
-name: Prod EU Deployment
+name: Prod - EU Region
 
 on:
   pull_request:
     types: [opened, edited, reopened]
+    paths:
+      - .github/workflows/prod-eu.yaml
 
 jobs:
-  deploy:
+  deploy-prod-eu:
+    if: >
+      github.event.pull_request.title contains 'ap' &&
+      github.event.pull_request.title contains 'eu' &&
+      github.event.pull_request.title contains 'us' &&
+      github.event.pull_request.title contains 'rG'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Validate Prod EU Deployment
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
           PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
+
+          if [ "$PROD_SELECTED" != "Y" ]; then
+            echo "Prod environment not selected for deployment. Skipping."
+            exit 0
+          fi
+
           PROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+          if [ -z "$PROD_IMAGE_EU" ]; then
+            echo "Error: Missing image tag for Prod EU Region."
+            exit 1
+          fi
 
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_EU=$PROD_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Prod EU Region."
-              exit 1
-            fi
-            echo "Prod EU Region selected with image tag: $PROD_IMAGE_EU"
-          else
-            echo "Prod EU Region not selected. Skipping deployment."
+          echo "Deploying Prod - EU Region with image tag: $PROD_IMAGE_EU"
