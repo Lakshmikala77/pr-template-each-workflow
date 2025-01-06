@@ -15,20 +15,34 @@ jobs:
       - name: Parse PR Body
         id: parse_pr
         run: |
+          # Extract PR body and title
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
+          
+          # Parse environment selection
           STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
           STAGING_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
 
+          # Export to environment
           echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
           echo "STAGING_IMAGE_AP=$STAGING_IMAGE_AP" >> $GITHUB_ENV
 
+          # Check for required PR title pattern
+          if [[ "$PR_TITLE" != *"ap"* || "$PR_TITLE" != *"eu"* || "$PR_TITLE" != *"us"* || "$PR_TITLE" != *"rG"* ]]; then
+            echo "PR title does not match the required pattern. Skipping deployment."
+            exit 0
+          fi
+
       - name: Validate and Print Values
         run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Staging AP Region."
-              exit 1
-            fi
-            echo "Staging AP Region selected with image tag: $STAGING_IMAGE_AP"
-          else
-            echo "Staging AP Region not selected. Skipping deployment."
+          if [ "$STAGING_SELECTED" != "Y" ]; then
+            echo "Staging environment not selected. Skipping deployment."
+            exit 0
+          fi
+
+          if [ -z "$STAGING_IMAGE_AP" ]; then
+            echo "Error: Missing image tag value for Staging AP Region."
+            exit 1
+          fi
+
+          echo "Staging AP Region selected with image tag: $STAGING_IMAGE_AP"
