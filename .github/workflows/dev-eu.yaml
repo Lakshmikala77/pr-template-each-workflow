@@ -1,0 +1,39 @@
+name: Dev EU Deployment
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Parse PR Body
+        id: parse_pr
+        run: |
+          # Extract the PR body
+          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR_BODY=$PR_BODY"
+
+          # Extract selection and image tag for Dev EU
+          DEV_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Dev: `)[^`]+')
+          DEV_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Dev Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+
+          echo "DEV_SELECTED=$DEV_SELECTED" >> $GITHUB_ENV
+          echo "DEV_IMAGE_EU=$DEV_IMAGE_EU" >> $GITHUB_ENV
+
+      - name: Validate and Print Values
+        run: |
+          if [ "$DEV_SELECTED" == "Y" ]; then
+            if [ -z "$DEV_IMAGE_EU" ]; then
+              echo "Error: Missing image tag value for Dev EU Region."
+              exit 1
+            fi
+            echo "Dev EU Region selected with image tag: $DEV_IMAGE_EU"
+          else
+            echo "Dev EU Region not selected. Skipping deployment."
+          fi
