@@ -5,6 +5,7 @@ on:
     branches:
       - prod  # Only trigger on PRs targeting the 'prod' branch
 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
