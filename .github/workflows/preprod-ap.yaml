@@ -19,7 +19,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Validate Preprod AP Deployment
+      - name: Validate Pre prod AP Deployment
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
           PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
