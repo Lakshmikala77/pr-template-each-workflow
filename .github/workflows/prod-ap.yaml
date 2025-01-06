@@ -6,14 +6,13 @@ on:
 
 jobs:
   deploy-ap:
-    if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
+    if: contains(github.event.pull_request.title, '[ap]')  # Trigger if PR title contains '[ap]'
     runs-on: ubuntu-latest
 
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
       - name: Extract Image Tag Values
         id: extract-tags
         run: |
