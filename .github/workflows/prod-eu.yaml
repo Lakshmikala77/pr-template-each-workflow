@@ -1,8 +1,9 @@
-name: Prod EU Deployment
+name: Prod-EU Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - prod  # Only trigger on PRs targeting the 'prod' branch
 
 jobs:
   deploy:
@@ -16,19 +17,23 @@ jobs:
         id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR_BODY=$PR_BODY"
+
           PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
           PROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
 
           echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
           echo "PROD_IMAGE_EU=$PROD_IMAGE_EU" >> $GITHUB_ENV
 
-      - name: Validate and Print Values
+      - name: Validate and Deploy Prod-EU
         run: |
           if [ "$PROD_SELECTED" == "Y" ]; then
             if [ -z "$PROD_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Prod EU Region."
+              echo "Error: Missing image tag value for Prod-EU."
               exit 1
             fi
-            echo "Prod EU Region selected with image tag: $PROD_IMAGE_EU"
+            echo "Deploying Prod-EU with image tag: $PROD_IMAGE_EU"
           else
-            echo "Prod EU Region not selected. Skipping deployment."
+            echo "Prod environment is not selected for deployment."
+            exit 0
+          fi

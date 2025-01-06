@@ -4,7 +4,8 @@
 - Preprod: `N`
 - Prod: `N`
 
-## Image Tags for Selected Environment
+
+# Image Tags for Selected Environment
 ### Dev Environment 
 - **AP Region:** ``
 - **EU Region:** ``
