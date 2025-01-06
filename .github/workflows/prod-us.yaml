@@ -1,8 +1,10 @@
-name: Prod-US Deployment
+
+name: Prod-us Deployment
+
 on:
   pull_request:
     branches:
-      - prod
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 
 jobs:
@@ -13,21 +15,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Check if US Deployment is Required
+      - name: Check if us Deployment is Required
         id: check-us
         run: |
-          echo "Parsing PR title for US region..."
+          echo "Parsing PR title for us region..."
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
 
-          if [[ "$PR_TITLE" == *"[us]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[eu,us]"* || "$PR_TITLE" == *"[ap,us]"* ]]; then
-            echo "US deployment required."
-            echo "DEPLOY_US=true" >> $GITHUB_ENV
+          if [[ "$PR_TITLE" == *"[us]"* || "$PR_TITLE" == *"[ap ,eu,us]"* || "$PR_TITLE" == *"[us,eu]"* || "$PR_TITLE" == *"[us,ap]"* ]]; then
+            echo "us deployment required."
+            echo "DEPLOY_us=true" >> $GITHUB_ENV
           else
-            echo "US deployment not required. Skipping..."
-            echo "DEPLOY_US=false" >> $GITHUB_ENV
+            echo "us deployment not required. Skipping..."
+            echo "DEPLOY_us=false" >> $GITHUB_ENV
 
-      - name: Deploy US Region
-        if: env.DEPLOY_US == 'true'
+      - name: Deploy us Region
+        if: env.DEPLOY_us == 'true'
         run: |
-          echo "Deploying US region..."
+          echo "Deploying us region..."

@@ -1,9 +1,9 @@
-name: Prod-EU Deployment
+name: Prod-eu Deployment
 
 on:
   pull_request:
     branches:
-      - prod
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 jobs:
   deploy-eu:
@@ -13,21 +13,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Check if EU Deployment is Required
+      - name: Check if eu Deployment is Required
         id: check-eu
         run: |
-          echo "Parsing PR title for EU region..."
+          echo "Parsing PR title for eu region..."
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
 
           if [[ "$PR_TITLE" == *"[eu]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[ap,eu]"* || "$PR_TITLE" == *"[eu,us]"* ]]; then
-            echo "EU deployment required."
-            echo "DEPLOY_EU=true" >> $GITHUB_ENV
+            echo "eu deployment required."
+            echo "DEPLOY_eu=true" >> $GITHUB_ENV
           else
-            echo "EU deployment not required. Skipping..."
-            echo "DEPLOY_EU=false" >> $GITHUB_ENV
+            echo "eu deployment not required. Skipping..."
+            echo "DEPLOY_eu=false" >> $GITHUB_ENV
 
-      - name: Deploy EU Region
-        if: env.DEPLOY_EU == 'true'
+      - name: Deploy eu Region
+        if: env.DEPLOY_eu == 'true'
         run: |
-          echo "Deploying EU region..."
+          echo "Deploying eu region..."
