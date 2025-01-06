@@ -9,6 +9,7 @@ jobs:
     if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
     runs-on: ubuntu-latest
 
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
