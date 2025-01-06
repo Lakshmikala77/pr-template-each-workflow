@@ -3,11 +3,11 @@ name: Prod-EU Deployment
 on:
   pull_request:
     branches:
-      - prod
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 jobs:
   deploy-eu:
-    if: contains(github.event.pull_request.title, '[eu]')
+    if: contains(github.event.pull_request.title, '[eu]')  # Trigger only if PR title contains '[eu]'
     runs-on: ubuntu-latest
 
     steps:
@@ -19,15 +19,18 @@ jobs:
         run: |
           echo "Extracting image tags for Prod-EU..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR Body: $PR_BODY"
 
-          # Extract the EU tag using sed
-          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*### Prod Environment.*- \*\*EU Region:\*\* `\([^`]*\)`.*/\1/p')
+          # Use sed to extract the EU tag value
+          EU_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*EU Region:\*\* `\([^`]*\)`/\1/p')
 
+          # Ensure the tag is not empty
           if [ -z "$EU_TAG" ]; then
             echo "EU tag not found or empty in the PR description!"
             exit 1
           fi
 
+          # Export the tag as an environment variable
           echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
           echo "Extracted EU tag: $EU_TAG"
 
