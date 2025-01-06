@@ -3,18 +3,35 @@ name: Prod-AP Deployment
 on:
   pull_request:
     branches:
-      - prod  # Trigger only for PRs targeting 'prod' branch
+      - prod
 
 jobs:
   deploy-ap:
-    if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
+    if: contains(github.event.pull_request.title, '[ap]')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Extract Image Tag Values
+        id: extract-tags
+        run: |
+          echo "Extracting image tags for Prod-AP..."
+          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+
+          # Extract the AP tag using sed
+          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*### Prod Environment.*- \*\*AP Region:\*\* `\([^`]*\)`.*/\1/p')
+
+          if [ -z "$AP_TAG" ]; then
+            echo "AP tag not found or empty in the PR description!"
+            exit 1
+          fi
+
+          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
+          echo "Extracted AP tag: $AP_TAG"
+
       - name: Deploy Prod-AP
         run: |
           echo "Deploying Prod-AP region..."
-          # Add your deployment commands for Prod-AP here
+          echo "Using image tag: $AP_TAG"
