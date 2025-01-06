@@ -10,6 +10,7 @@ jobs:
     if: contains(github.event.pull_request.title, '[ap]')
     runs-on: ubuntu-latest
 
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -20,6 +21,7 @@ jobs:
           echo "Extracting image tags for Prod-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
 
+
           # Extract the AP tag using sed
           AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*### Prod Environment.*- \*\*AP Region:\*\* `\([^`]*\)`.*/\1/p')
 
@@ -27,6 +29,9 @@ jobs:
             echo "AP tag not found or empty in the PR description!"
             exit 1
           fi
+
+          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Prod Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+
 
           echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
           echo "Extracted AP tag: $AP_TAG"
