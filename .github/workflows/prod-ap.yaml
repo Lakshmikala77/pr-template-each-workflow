@@ -3,37 +3,36 @@ name: Prod-AP Deployment
 on:
   pull_request:
     branches:
-      - prod  # Only trigger on PRs targeting the 'prod' branch
+      - prod  # Trigger only for PRs targeting 'prod' branch
 
 jobs:
-  deploy:
+  deploy-ap:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Parse PR Title for AP Deployment
+        id: check_title
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
+          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
+          echo "PR_TITLE=$PR_TITLE"
 
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_AP=$PROD_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Prod-AP
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Prod-AP."
-              exit 1
-            fi
-            echo "Deploying Prod-AP with image tag: $PROD_IMAGE_AP"
+          if [[ "$PR_TITLE" =~ \[ap\] ]]; then
+            echo "DEPLOY_AP=Y" >> $GITHUB_ENV
           else
-            echo "Prod environment is not selected for deployment."
-            exit 0
+            echo "DEPLOY_AP=N" >> $GITHUB_ENV
           fi
+
+      - name: Deploy Prod-AP
+        if: env.DEPLOY_AP == 'Y'
+        run: |
+          echo "Deploying Prod-AP region..."
+          # Add your deployment commands for Prod-AP here
+
+      - name: Skip AP Deployment
+        if: env.DEPLOY_AP == 'N'
+        run: |
+          echo "No deployment for Prod-AP specified in PR title. Exiting."
+          exit 0
