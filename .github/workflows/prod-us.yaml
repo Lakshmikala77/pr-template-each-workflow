@@ -3,7 +3,7 @@ name: Prod-US Deployment
 on:
   pull_request:
     branches:
-      - prod  # Trigger only for PRs targeting 'prod' branch
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 jobs:
   deploy-us:
@@ -19,15 +19,18 @@ jobs:
         run: |
           echo "Extracting image tags for Prod-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR Body: $PR_BODY"
 
-          # Extract the US tag using sed instead of grep
-          US_TAG=$(echo "$PR_BODY" | sed -n 's/.*### Prod Environment.*- \*\*US Region:\*\* `\([^`]*\)`.*/\1/p')
+          # Use sed to extract the US tag value
+          US_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*US Region:\*\* `\([^`]*\)`/\1/p')
 
+          # Ensure the tag is not empty
           if [ -z "$US_TAG" ]; then
             echo "US tag not found or empty in the PR description!"
             exit 1
           fi
 
+          # Export the tag as an environment variable
           echo "US_TAG=$US_TAG" >> $GITHUB_ENV
           echo "Extracted US tag: $US_TAG"
 
