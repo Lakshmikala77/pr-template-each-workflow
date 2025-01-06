@@ -1,0 +1,34 @@
+name: Prod AP Deployment
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Parse PR Body
+        id: parse_pr
+        run: |
+          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
+          PROD_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+
+          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
+          echo "PROD_IMAGE_AP=$PROD_IMAGE_AP" >> $GITHUB_ENV
+
+      - name: Validate and Print Values
+        run: |
+          if [ "$PROD_SELECTED" == "Y" ]; then
+            if [ -z "$PROD_IMAGE_AP" ]; then
+              echo "Error: Missing image tag value for Prod AP Region."
+              exit 1
+            fi
+            echo "Prod AP Region selected with image tag: $PROD_IMAGE_AP"
+          else
+            echo "Prod AP Region not selected. Skipping deployment."
