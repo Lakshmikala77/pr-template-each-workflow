@@ -7,32 +7,14 @@ on:
 
 jobs:
   deploy-ap:
+    if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Title for AP Deployment
-        id: check_title
-        run: |
-          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
-          echo "PR_TITLE=$PR_TITLE"
-
-          if [[ "$PR_TITLE" =~ \[ap\] ]]; then
-            echo "DEPLOY_AP=Y" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_AP=N" >> $GITHUB_ENV
-          fi
-
       - name: Deploy Prod-AP
-        if: env.DEPLOY_AP == 'Y'
         run: |
           echo "Deploying Prod-AP region..."
           # Add your deployment commands for Prod-AP here
-
-      - name: Skip AP Deployment
-        if: env.DEPLOY_AP == 'N'
-        run: |
-          echo "No deployment for Prod-AP specified in PR title. Exiting."
-          exit 0
