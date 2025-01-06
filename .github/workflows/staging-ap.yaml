@@ -1,8 +1,9 @@
-name: Staging AP Deployment
+name: Staging-AP Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - staging  # Only trigger on PRs targeting the 'staging' branch
 
 jobs:
   deploy:
@@ -16,19 +17,23 @@ jobs:
         id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR_BODY=$PR_BODY"
+
           STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
           STAGING_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
 
           echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
           echo "STAGING_IMAGE_AP=$STAGING_IMAGE_AP" >> $GITHUB_ENV
 
-      - name: Validate and Print Values
+      - name: Validate and Deploy Staging-AP
         run: |
           if [ "$STAGING_SELECTED" == "Y" ]; then
             if [ -z "$STAGING_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Staging AP Region."
+              echo "Error: Missing image tag value for Staging-AP."
               exit 1
             fi
-            echo "Staging AP Region selected with image tag: $STAGING_IMAGE_AP"
+            echo "Deploying Staging-AP with image tag: $STAGING_IMAGE_AP"
           else
-            echo "Staging AP Region not selected. Skipping deployment."
+            echo "Staging environment is not selected for deployment."
+            exit 0
+          fi

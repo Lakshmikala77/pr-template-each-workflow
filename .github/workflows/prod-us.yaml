@@ -1,34 +1,38 @@
-name: Prod EU Deployment
+name: Prod-US Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - prod  # Trigger only for PRs targeting 'prod' branch
 
 jobs:
-  deploy:
+  deploy-us:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Parse PR Title for US Deployment
+        id: check_title
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
+          echo "PR_TITLE=$PR_TITLE"
 
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_US=$PROD_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_US" ]; then
-              echo "Error: Missing image tag value for Prod US Region."
-              exit 1
-            fi
-            echo "Prod US Region selected with image tag: $PROD_IMAGE_US"
+          if [[ "$PR_TITLE" =~ \[us\] ]]; then
+            echo "DEPLOY_US=Y" >> $GITHUB_ENV
           else
-            echo "Prod US Region not selected. Skipping deployment."
+            echo "DEPLOY_US=N" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy Prod-US
+        if: env.DEPLOY_US == 'Y'
+        run: |
+          echo "Deploying Prod-US region..."
+          # Add your deployment commands for Prod-US here
+
+      - name: Skip US Deployment
+        if: env.DEPLOY_US == 'N'
+        run: |
+          echo "No deployment for Prod-US specified in PR title. Exiting."
+          exit 0

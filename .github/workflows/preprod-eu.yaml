@@ -1,8 +1,9 @@
-name: Preprod EU Deployment
+name: Preprod-EU Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - preprod  # Only trigger on PRs targeting the 'preprod' branch
 
 jobs:
   deploy:
@@ -16,19 +17,23 @@ jobs:
         id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          echo "PR_BODY=$PR_BODY"
+
           PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
           PREPROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
 
           echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
           echo "PREPROD_IMAGE_EU=$PREPROD_IMAGE_EU" >> $GITHUB_ENV
 
-      - name: Validate and Print Values
+      - name: Validate and Deploy Preprod-EU
         run: |
           if [ "$PREPROD_SELECTED" == "Y" ]; then
             if [ -z "$PREPROD_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Preprod EU Region."
+              echo "Error: Missing image tag value for Preprod-EU."
               exit 1
             fi
-            echo "Preprod EU Region selected with image tag: $PREPROD_IMAGE_EU"
+            echo "Deploying Preprod-EU with image tag: $PREPROD_IMAGE_EU"
           else
-            echo "Preprod EU Region not selected. Skipping deployment."
+            echo "Preprod environment is not selected for deployment."
+            exit 0
+          fi
