@@ -1,38 +1,39 @@
-name: Preprod - EU Region
+name: Preprod-EU Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
-    paths:
-      - .github/workflows/preprod-eu.yaml
+    branches:
+      - preprod  # Only trigger on PRs targeting the 'preprod' branch
 
 jobs:
-  deploy-preprod-eu:
-    if: >
-      github.event.pull_request.title contains 'ap' &&
-      github.event.pull_request.title contains 'eu' &&
-      github.event.pull_request.title contains 'us' &&
-      github.event.pull_request.title contains 'rG'
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Validate Preprod EU Deployment
+      - name: Parse PR Body
+        id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
+          echo "PR_BODY=$PR_BODY"
 
-          if [ "$PREPROD_SELECTED" != "Y" ]; then
-            echo "Preprod environment not selected for deployment. Skipping."
+          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
+          PREPROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+
+          echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
+          echo "PREPROD_IMAGE_EU=$PREPROD_IMAGE_EU" >> $GITHUB_ENV
+
+      - name: Validate and Deploy Preprod-EU
+        run: |
+          if [ "$PREPROD_SELECTED" == "Y" ]; then
+            if [ -z "$PREPROD_IMAGE_EU" ]; then
+              echo "Error: Missing image tag value for Preprod-EU."
+              exit 1
+            fi
+            echo "Deploying Preprod-EU with image tag: $PREPROD_IMAGE_EU"
+          else
+            echo "Preprod environment is not selected for deployment."
             exit 0
           fi
-
-          PREPROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-          if [ -z "$PREPROD_IMAGE_EU" ]; then
-            echo "Error: Missing image tag for Preprod EU Region."
-            exit 1
-          fi
-
-          echo "Deploying Preprod - EU Region with image tag: $PREPROD_IMAGE_EU"
