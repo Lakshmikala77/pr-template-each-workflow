@@ -5,34 +5,17 @@ on:
     branches:
       - prod  # Trigger only for PRs targeting 'prod' branch
 
+
 jobs:
   deploy-us:
+    if: contains(github.event.pull_request.title, '[us]')  # Trigger only if PR title contains '[us]'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Title for US Deployment
-        id: check_title
-        run: |
-          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
-          echo "PR_TITLE=$PR_TITLE"
-
-          if [[ "$PR_TITLE" =~ \[us\] ]]; then
-            echo "DEPLOY_US=Y" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_US=N" >> $GITHUB_ENV
-          fi
-
       - name: Deploy Prod-US
-        if: env.DEPLOY_US == 'Y'
         run: |
           echo "Deploying Prod-US region..."
           # Add your deployment commands for Prod-US here
-
-      - name: Skip US Deployment
-        if: env.DEPLOY_US == 'N'
-        run: |
-          echo "No deployment for Prod-US specified in PR title. Exiting."
-          exit 0
