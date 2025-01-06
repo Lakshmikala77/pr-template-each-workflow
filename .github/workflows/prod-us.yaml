@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy-us:
-    if: contains(github.event.pull_request.title, '[us]')  # Trigger only if PR title contains '[us]'
+    if: contains(github.event.pull_request.title, '[us]')  # Trigger if PR title contains '[us]'
     runs-on: ubuntu-latest
 
     steps:
