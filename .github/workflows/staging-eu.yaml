@@ -1,38 +1,39 @@
-name: Staging - EU Region
+name: Staging-EU Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
-    paths:
-      - .github/workflows/staging-eu.yaml
+    branches:
+      - staging  # Only trigger on PRs targeting the 'staging' branch
 
 jobs:
-  deploy-staging-eu:
-    if: >
-      github.event.pull_request.title contains 'ap' &&
-      github.event.pull_request.title contains 'eu' &&
-      github.event.pull_request.title contains 'us' &&
-      github.event.pull_request.title contains 'rG'
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Validate Staging EU Deployment
+      - name: Parse PR Body
+        id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
+          echo "PR_BODY=$PR_BODY"
 
-          if [ "$STAGING_SELECTED" != "Y" ]; then
-            echo "Staging environment not selected for deployment. Skipping."
+          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
+          STAGING_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+
+          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
+          echo "STAGING_IMAGE_EU=$STAGING_IMAGE_EU" >> $GITHUB_ENV
+
+      - name: Validate and Deploy Staging-EU
+        run: |
+          if [ "$STAGING_SELECTED" == "Y" ]; then
+            if [ -z "$STAGING_IMAGE_EU" ]; then
+              echo "Error: Missing image tag value for Staging-EU."
+              exit 1
+            fi
+            echo "Deploying Staging-EU with image tag: $STAGING_IMAGE_EU"
+          else
+            echo "Staging environment is not selected for deployment."
             exit 0
           fi
-
-          STAGING_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-          if [ -z "$STAGING_IMAGE_EU" ]; then
-            echo "Error: Missing image tag for Staging EU Region."
-            exit 1
-          fi
-
-          echo "Deploying Staging - EU Region with image tag: $STAGING_IMAGE_EU"
