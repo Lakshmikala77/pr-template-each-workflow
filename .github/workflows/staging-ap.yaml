@@ -1,34 +1,38 @@
-name: Staging AP Deployment
+name: Staging - AP Region
 
 on:
   pull_request:
     types: [opened, edited, reopened]
+    paths:
+      - .github/workflows/staging-ap.yaml
 
 jobs:
-  deploy:
+  deploy-staging-ap:
+    if: >
+      github.event.pull_request.title contains 'ap' &&
+      github.event.pull_request.title contains 'eu' &&
+      github.event.pull_request.title contains 'us' &&
+      github.event.pull_request.title contains 'rG'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Validate Staging AP Deployment
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
           STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
+
+          if [ "$STAGING_SELECTED" != "Y" ]; then
+            echo "Staging environment not selected for deployment. Skipping."
+            exit 0
+          fi
+
           STAGING_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+          if [ -z "$STAGING_IMAGE_AP" ]; then
+            echo "Error: Missing image tag for Staging AP Region."
+            exit 1
+          fi
 
-          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
-          echo "STAGING_IMAGE_AP=$STAGING_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
-        run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Staging AP Region."
-              exit 1
-            fi
-            echo "Staging AP Region selected with image tag: $STAGING_IMAGE_AP"
-          else
-            echo "Staging AP Region not selected. Skipping deployment."
+          echo "Deploying Staging - AP Region with image tag: $STAGING_IMAGE_AP"
