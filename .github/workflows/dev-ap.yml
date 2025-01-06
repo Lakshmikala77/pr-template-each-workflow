@@ -2,7 +2,7 @@ name: Dev AP Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    types: [opened, edited, reopened, submitted]
 
 jobs:
   deploy:
