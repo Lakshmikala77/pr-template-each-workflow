@@ -3,38 +3,31 @@ name: Prod-EU Deployment
 on:
   pull_request:
     branches:
-      - prod  # Trigger only for PRs targeting the 'prod' branch
+      - prod
 
 jobs:
   deploy-eu:
-    if: contains(github.event.pull_request.title, '[eu]')  # Trigger if PR title contains '[eu]'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Extract Image Tag Values
-        id: extract-tags
+      - name: Check if EU Deployment is Required
+        id: check-eu
         run: |
-          echo "Extracting image tags for Prod-EU..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR Body: $PR_BODY"
+          echo "Parsing PR title for EU region..."
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
 
-          # Use sed to extract the EU tag value
-          EU_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*EU Region:\*\* `\([^`]*\)`/\1/p')
+          if [[ "$PR_TITLE" == *"[eu]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[ap,eu]"* || "$PR_TITLE" == *"[eu,us]"* ]]; then
+            echo "EU deployment required."
+            echo "DEPLOY_EU=true" >> $GITHUB_ENV
+          else
+            echo "EU deployment not required. Skipping..."
+            echo "DEPLOY_EU=false" >> $GITHUB_ENV
 
-          # Ensure the tag is not empty
-          if [ -z "$EU_TAG" ]; then
-            echo "EU tag not found or empty in the PR description!"
-            exit 1
-          fi
-
-          # Export the tag as an environment variable
-          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
-          echo "Extracted EU tag: $EU_TAG"
-
-      - name: Deploy Prod-EU
+      - name: Deploy EU Region
+        if: env.DEPLOY_EU == 'true'
         run: |
-          echo "Deploying Prod-EU region..."
-          echo "Using image tag: $EU_TAG"
+          echo "Deploying EU region..."

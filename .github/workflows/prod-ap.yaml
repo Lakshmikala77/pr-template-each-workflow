@@ -1,4 +1,5 @@
 name: Prod-AP Deployment
+
 on:
   pull_request:
     branches:
@@ -6,34 +7,27 @@ on:
 
 jobs:
   deploy-ap:
-    if: contains(github.event.pull_request.title, '[ap]')  # Trigger if PR title contains '[ap]'
     runs-on: ubuntu-latest
-
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-      - name: Extract Image Tag Values
-        id: extract-tags
+
+      - name: Check if AP Deployment is Required
+        id: check-ap
         run: |
-          echo "Extracting image tags for Prod-AP..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR Body: $PR_BODY"
+          echo "Parsing PR title for AP region..."
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
 
-          # Use sed to extract the AP tag value
-          AP_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*AP Region:\*\* `\([^`]*\)`/\1/p')
+          if [[ "$PR_TITLE" == *"[ap]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[ap,eu]"* || "$PR_TITLE" == *"[ap,us]"* ]]; then
+            echo "AP deployment required."
+            echo "DEPLOY_AP=true" >> $GITHUB_ENV
+          else
+            echo "AP deployment not required. Skipping..."
+            echo "DEPLOY_AP=false" >> $GITHUB_ENV
 
-          # Ensure the tag is not empty
-          if [ -z "$AP_TAG" ]; then
-            echo "AP tag not found or empty in the PR description!"
-            exit 1
-          fi
-
-          # Export the tag as an environment variable
-          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
-          echo "Extracted AP tag: $AP_TAG"
-
-      - name: Deploy Prod-AP
+      - name: Deploy AP Region
+        if: env.DEPLOY_AP == 'true'
         run: |
-          echo "Deploying Prod-AP region..."
-          echo "Using image tag: $AP_TAG"
+          echo "Deploying AP region..."
