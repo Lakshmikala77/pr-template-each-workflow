@@ -21,7 +21,13 @@ jobs:
           echo "Extracting image tags for Prod-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
 
-          US_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Prod Environment\s+- \*\*US Region:\*\* `)[^`]+')
+          # Extract the US tag using sed instead of grep
+          US_TAG=$(echo "$PR_BODY" | sed -n 's/.*### Prod Environment.*- \*\*US Region:\*\* `\([^`]*\)`.*/\1/p')
+
+          if [ -z "$US_TAG" ]; then
+            echo "US tag not found or empty in the PR description!"
+            exit 1
+          fi
 
           echo "US_TAG=$US_TAG" >> $GITHUB_ENV
           echo "Extracted US tag: $US_TAG"
