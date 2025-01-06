@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - prod  # Trigger only for PRs targeting the 'prod' branch
-
 jobs:
   deploy-us:
     runs-on: ubuntu-latest
