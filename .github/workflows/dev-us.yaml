@@ -1,8 +1,9 @@
-name: Dev US Deployment
+name: Dev-US Deployment
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - dev  # Only trigger on PRs targeting the 'dev' branch
 
 jobs:
   deploy:
@@ -12,11 +13,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body and Validate
+      - name: Parse PR Body
         id: parse_pr
         run: |
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          PR_TITLE=$(jq -r '.pull_request.title' < "$GITHUB_EVENT_PATH")
+          echo "PR_BODY=$PR_BODY"
 
           DEV_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Dev: `)[^`]+')
           DEV_IMAGE_US=$(echo "$PR_BODY" | grep -A 3 "Dev Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
@@ -24,21 +25,15 @@ jobs:
           echo "DEV_SELECTED=$DEV_SELECTED" >> $GITHUB_ENV
           echo "DEV_IMAGE_US=$DEV_IMAGE_US" >> $GITHUB_ENV
 
-          if [[ "$PR_TITLE" != *"ap"* || "$PR_TITLE" != *"eu"* || "$PR_TITLE" != *"us"* || "$PR_TITLE" != *"rG"* ]]; then
-            echo "PR title does not match the required pattern. Skipping deployment."
-            exit 0
-          fi
-
-      - name: Validate and Deploy
+      - name: Validate and Deploy Dev-US
         run: |
-          if [ "$DEV_SELECTED" != "Y" ]; then
-            echo "Dev environment not selected. Skipping deployment."
+          if [ "$DEV_SELECTED" == "Y" ]; then
+            if [ -z "$DEV_IMAGE_US" ]; then
+              echo "Error: Missing image tag value for Dev-US."
+              exit 1
+            fi
+            echo "Deploying Dev-US with image tag: $DEV_IMAGE_US"
+          else
+            echo "Dev environment is not selected for deployment."
             exit 0
           fi
-
-          if [ -z "$DEV_IMAGE_US" ]; then
-            echo "Error: Missing image tag value for Dev US Region."
-            exit 1
-          fi
-
-          echo "Deploying to Dev US Region with image tag: $DEV_IMAGE_US"
