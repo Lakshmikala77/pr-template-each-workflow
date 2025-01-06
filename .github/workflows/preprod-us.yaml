@@ -1,0 +1,34 @@
+name: Preprod US Deployment
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Parse PR Body
+        id: parse_pr
+        run: |
+          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
+          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
+          PREPROD_IMAGE_US=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+
+          echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
+          echo "PREPROD_IMAGE_EU=$PREPROD_IMAGE_EU" >> $GITHUB_ENV
+
+      - name: Validate and Print Values
+        run: |
+          if [ "$PREPROD_SELECTED" == "Y" ]; then
+            if [ -z "$PREPROD_IMAGE_US" ]; then
+              echo "Error: Missing image tag value for Preprod US Region."
+              exit 1
+            fi
+            echo "Preprod US Region selected with image tag: $PREPROD_IMAGE_US"
+          else
+            echo "Preprod US Region not selected. Skipping deployment."
