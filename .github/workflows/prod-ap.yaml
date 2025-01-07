@@ -1,39 +1,36 @@
 name: Prod-AP Deployment
-
 on:
   pull_request:
     branches:
-      - prod  # Only trigger on PRs targeting the 'prod' branch
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 jobs:
-  deploy:
+  deploy-ap:
+    if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract Image Tag Values
+        id: extract-tags
         run: |
+          echo "Extracting image tags for Prod-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
-
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_AP=$PROD_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Prod-AP
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Prod-AP."
-              exit 1
-            fi
-            echo "Deploying Prod-AP with image tag: $PROD_IMAGE_AP"
-          else
-            echo "Prod environment is not selected for deployment."
-            exit 0
+          echo "PR Body: $PR_BODY"
+          # Use sed to extract the AP tag value
+          AP_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*AP Region:\*\* `\([^`]*\)`/\1/p')
+          # Ensure the tag is not empty
+          if [ -z "$AP_TAG" ]; then
+            echo "AP tag not found or empty in the PR description!"
+            exit 1
           fi
+          # Export the tag as an environment variable
+          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
+          echo "Extracted AP tag: $AP_TAG"
+      - name: Deploy Prod-AP
+        run: |
+          echo "Deploying Prod-AP region..."
+          echo "Using image tag: $AP_TAG"
