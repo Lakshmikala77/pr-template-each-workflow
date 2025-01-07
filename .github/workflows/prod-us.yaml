@@ -1,39 +1,36 @@
-name: Prod-US Deployment
+
+name: Prod-us Deployment
 
 on:
   pull_request:
     branches:
-      - prod  # Only trigger on PRs targeting the 'prod' branch
+      - prod  # Trigger only for PRs targeting the 'prod' branch
+
+
 
 jobs:
-  deploy:
+  deploy-us:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Check if us Deployment is Required
+        id: check-us
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
+          echo "Parsing PR title for us region..."
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
 
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_US=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_US=$PROD_IMAGE_US" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Prod-US
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_US" ]; then
-              echo "Error: Missing image tag value for Prod-US."
-              exit 1
-            fi
-            echo "Deploying Prod-US with image tag: $PROD_IMAGE_US"
+          if [[ "$PR_TITLE" == *"[us]"* || "$PR_TITLE" == *"[ap ,eu,us]"* || "$PR_TITLE" == *"[us,eu]"* || "$PR_TITLE" == *"[us,ap]"* ]]; then
+            echo "us deployment required."
+            echo "DEPLOY_us=true" >> $GITHUB_ENV
           else
-            echo "Prod environment is not selected for deployment."
-            exit 0
-          fi
+            echo "us deployment not required. Skipping..."
+            echo "DEPLOY_us=false" >> $GITHUB_ENV
+
+      - name: Deploy us Region
+        if: env.DEPLOY_us == 'true'
+        run: |
+          echo "Deploying us region..."

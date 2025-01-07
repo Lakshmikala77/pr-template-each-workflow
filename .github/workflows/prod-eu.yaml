@@ -1,39 +1,33 @@
-name: Prod-EU Deployment
+name: Prod-eu Deployment
 
 on:
   pull_request:
     branches:
-      - prod  # Only trigger on PRs targeting the 'prod' branch
+      - prod  # Trigger only for PRs targeting the 'prod' branch
 
 jobs:
-  deploy:
+  deploy-eu:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Check if eu Deployment is Required
+        id: check-eu
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
+          echo "Parsing PR title for eu region..."
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
 
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_EU=$PROD_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Prod-EU
-        run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Prod-EU."
-              exit 1
-            fi
-            echo "Deploying Prod-EU with image tag: $PROD_IMAGE_EU"
+          if [[ "$PR_TITLE" == *"[eu]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[ap,eu]"* || "$PR_TITLE" == *"[eu,us]"* ]]; then
+            echo "eu deployment required."
+            echo "DEPLOY_eu=true" >> $GITHUB_ENV
           else
-            echo "Prod environment is not selected for deployment."
-            exit 0
-          fi
+            echo "eu deployment not required. Skipping..."
+            echo "DEPLOY_eu=false" >> $GITHUB_ENV
+
+      - name: Deploy eu Region
+        if: env.DEPLOY_eu == 'true'
+        run: |
+          echo "Deploying eu region..."
