@@ -1,4 +1,4 @@
-# Select Environment
+# Select a Environment
 - Dev: `N`
 - Staging: `N`
 - Preprod: `N`
