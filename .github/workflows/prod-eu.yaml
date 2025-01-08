@@ -6,7 +6,7 @@ on:
       - prod
 
 jobs:
-  deploy-prod-ap:
+  deploy-prod-eu:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
