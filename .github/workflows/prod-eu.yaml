@@ -1,33 +1,41 @@
-name: Prod-eu Deployment
+name: Prod-EU Deployment
 
 on:
   pull_request:
     branches:
-      - prod  # Trigger only for PRs targeting the 'prod' branch
+      - prod
 
 jobs:
-  deploy-eu:
+  deploy-prod-eu:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Check if eu Deployment is Required
-        id: check-eu
+      - name: Extract PR Details
         run: |
-          echo "Parsing PR title for eu region..."
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "PR Title: $PR_TITLE"
+          echo "Extracting PR details for Prod-EU..."
+          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
 
-          if [[ "$PR_TITLE" == *"[eu]"* || "$PR_TITLE" == *"[ap,eu,us]"* || "$PR_TITLE" == *"[ap,eu]"* || "$PR_TITLE" == *"[eu,us]"* ]]; then
-            echo "eu deployment required."
-            echo "DEPLOY_eu=true" >> $GITHUB_ENV
-          else
-            echo "eu deployment not required. Skipping..."
-            echo "DEPLOY_eu=false" >> $GITHUB_ENV
+          # Check if Prod is selected
+          PROD_SELECTED=$(echo "$PR_BODY" | grep -i "Prod: \`Y\`" || echo "")
+          if [[ -z "$PROD_SELECTED" ]]; then
+            echo "Prod environment not selected for deployment. Skipping..."
+            exit 0
+          fi
 
-      - name: Deploy eu Region
-        if: env.DEPLOY_eu == 'true'
+          # Extract EU tag
+          EU_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Prod Environment\s+- \*\*EU Region:\*\* `)[^`]+')
+          if [[ -z "$EU_TAG" ]]; then
+            echo "EU tag not provided for Prod. Exiting..."
+            exit 1
+          fi
+
+          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
+          echo "Extracted EU tag: $EU_TAG"
+
+      - name: Deploy to Prod EU
         run: |
-          echo "Deploying eu region..."
+          echo "Deploying Prod EU Region..."
+          echo "Using EU Tag: $EU_TAG"
