@@ -3,37 +3,39 @@ name: Preprod-AP Deployment
 on:
   pull_request:
     branches:
-      - preprod  # Only trigger on PRs targeting the 'preprod' branch
+      - preprod
 
 jobs:
-  deploy:
+  deploy-preprod-ap:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Preprod-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
-          PREPROD_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
-          echo "PREPROD_IMAGE_AP=$PREPROD_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Preprod-AP
-        run: |
-          if [ "$PREPROD_SELECTED" == "Y" ]; then
-            if [ -z "$PREPROD_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Preprod-AP."
-              exit 1
-            fi
-            echo "Deploying Preprod-AP with image tag: $PREPROD_IMAGE_AP"
-          else
-            echo "Preprod environment is not selected for deployment."
+          # Check if Preprod is selected
+          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -i "Preprod: \`Y\`" || echo "")
+          if [[ -z "$PREPROD_SELECTED" ]]; then
+            echo "Preprod environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract AP tag
+          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Preprod Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          if [[ -z "$AP_TAG" ]]; then
+            echo "AP tag not provided for Preprod. Exiting..."
+            exit 1
+          fi
+
+          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
+          echo "Extracted AP tag: $AP_TAG"
+
+      - name: Deploy to Preprod AP
+        run: |
+          echo "Deploying Preprod AP Region..."
+          echo "Using AP Tag: $AP_TAG"

@@ -3,20 +3,39 @@ name: Preprod-US Deployment
 on:
   pull_request:
     branches:
-      - preprod  # Only trigger on PRs targeting the 'preprod' branch
+      - preprod
 
 jobs:
-  deploy:
+  deploy-preprod-us:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Preprod-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          PREPROD_SELECTED=$(echo "$PR_BODY" |
+          # Check if Preprod is selected
+          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -i "Preprod: \`Y\`" || echo "")
+          if [[ -z "$PREPROD_SELECTED" ]]; then
+            echo "Preprod environment not selected for deployment. Skipping..."
+            exit 0
+          fi
+
+          # Extract US tag
+          US_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Preprod Environment\s+- \*\*US Region:\*\* `)[^`]+')
+          if [[ -z "$US_TAG" ]]; then
+            echo "US tag not provided for Preprod. Exiting..."
+            exit 1
+          fi
+
+          echo "US_TAG=$US_TAG" >> $GITHUB_ENV
+          echo "Extracted US tag: $US_TAG"
+
+      - name: Deploy to Preprod US
+        run: |
+          echo "Deploying Preprod US Region..."
+          echo "Using US Tag: $US_TAG"

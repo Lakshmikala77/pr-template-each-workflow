@@ -3,37 +3,39 @@ name: Staging-AP Deployment
 on:
   pull_request:
     branches:
-      - staging  # Only trigger on PRs targeting the 'staging' branch
+      - staging
 
 jobs:
-  deploy:
+  deploy-staging-ap:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Staging-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
-          STAGING_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
-          echo "STAGING_IMAGE_AP=$STAGING_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Staging-AP
-        run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Staging-AP."
-              exit 1
-            fi
-            echo "Deploying Staging-AP with image tag: $STAGING_IMAGE_AP"
-          else
-            echo "Staging environment is not selected for deployment."
+          # Check if Staging is selected
+          STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
+          if [[ -z "$STAGING_SELECTED" ]]; then
+            echo "Staging environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract AP tag
+          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Staging Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          if [[ -z "$AP_TAG" ]]; then
+            echo "AP tag not provided for Staging. Exiting..."
+            exit 1
+          fi
+
+          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
+          echo "Extracted AP tag: $AP_TAG"
+
+      - name: Deploy to Staging AP
+        run: |
+          echo "Deploying Staging AP Region..."
+          echo "Using AP Tag: $AP_TAG"

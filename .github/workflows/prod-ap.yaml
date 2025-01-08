@@ -1,36 +1,41 @@
 name: Prod-AP Deployment
+
 on:
   pull_request:
     branches:
-      - prod  # Trigger only for PRs targeting the 'prod' branch
+      - prod
 
 jobs:
-  deploy-ap:
-    if: contains(github.event.pull_request.title, '[ap]')  # Trigger only if PR title contains '[ap]'
+  deploy-prod-ap:
     runs-on: ubuntu-latest
-
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Extract Image Tag Values
-        id: extract-tags
+      - name: Extract PR Details
         run: |
-          echo "Extracting image tags for Prod-AP..."
+          echo "Extracting PR details for Prod-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR Body: $PR_BODY"
-          # Use sed to extract the AP tag value
-          AP_TAG=$(echo "$PR_BODY" | sed -n '/### Prod Environment/,/### Prod Environment/ s/.*- \*\*AP Region:\*\* `\([^`]*\)`/\1/p')
-          # Ensure the tag is not empty
-          if [ -z "$AP_TAG" ]; then
-            echo "AP tag not found or empty in the PR description!"
+
+          # Check if Prod is selected
+          PROD_SELECTED=$(echo "$PR_BODY" | grep -i "Prod: \`Y\`" || echo "")
+          if [[ -z "$PROD_SELECTED" ]]; then
+            echo "Prod environment not selected for deployment. Skipping..."
+            exit 0
+          fi
+
+          # Extract AP tag
+          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Prod Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          if [[ -z "$AP_TAG" ]]; then
+            echo "AP tag not provided for Prod. Exiting..."
             exit 1
           fi
-          # Export the tag as an environment variable
+
           echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
           echo "Extracted AP tag: $AP_TAG"
-      - name: Deploy Prod-AP
+
+      - name: Deploy to Prod AP
         run: |
-          echo "Deploying Prod-AP region..."
-          echo "Using image tag: $AP_TAG"
+          echo "Deploying Prod AP Region..."
+          echo "Using AP Tag: $AP_TAG"

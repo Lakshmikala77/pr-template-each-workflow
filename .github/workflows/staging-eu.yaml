@@ -3,37 +3,39 @@ name: Staging-EU Deployment
 on:
   pull_request:
     branches:
-      - staging  # Only trigger on PRs targeting the 'staging' branch
+      - staging
 
 jobs:
-  deploy:
+  deploy-staging-eu:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Staging-EU..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
-          STAGING_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
-          echo "STAGING_IMAGE_EU=$STAGING_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Staging-EU
-        run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Staging-EU."
-              exit 1
-            fi
-            echo "Deploying Staging-EU with image tag: $STAGING_IMAGE_EU"
-          else
-            echo "Staging environment is not selected for deployment."
+          # Check if Staging is selected
+          STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
+          if [[ -z "$STAGING_SELECTED" ]]; then
+            echo "Staging environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract EU tag
+          EU_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Staging Environment\s+- \*\*EU Region:\*\* `)[^`]+')
+          if [[ -z "$EU_TAG" ]]; then
+            echo "EU tag not provided for Staging. Exiting..."
+            exit 1
+          fi
+
+          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
+          echo "Extracted EU tag: $EU_TAG"
+
+      - name: Deploy to Staging EU
+        run: |
+          echo "Deploying Staging EU Region..."
+          echo "Using EU Tag: $EU_TAG"
