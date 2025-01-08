@@ -25,17 +25,11 @@ jobs:
             exit 0
           fi
 
-          # Extract AP tag
-          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Dev Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          # Extract AP tag using sed
+          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*AP Region:\*\* `\([^`]*\)`/\1/p')
           if [[ -z "$AP_TAG" ]]; then
             echo "AP tag not provided for Dev. Exiting..."
             exit 1
           fi
 
-          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
-          echo "Extracted AP tag: $AP_TAG"
-
-      - name: Deploy to Dev AP
-        run: |
-          echo "Deploying Dev AP Region..."
-          echo "Using AP Tag: $AP_TAG"
+          echo "AP_TAG=$AP_TAG" >> $GITHUB
