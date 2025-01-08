@@ -3,37 +3,39 @@ name: Dev-AP Deployment
 on:
   pull_request:
     branches:
-      - dev  # Only trigger on PRs targeting the 'dev' branch
+      - dev
 
 jobs:
-  deploy:
+  deploy-dev-ap:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Dev-AP..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Dev: `)[^`]+')
-          DEV_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Dev Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "DEV_SELECTED=$DEV_SELECTED" >> $GITHUB_ENV
-          echo "DEV_IMAGE_AP=$DEV_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Dev-AP
-        run: |
-          if [ "$DEV_SELECTED" == "Y" ]; then
-            if [ -z "$DEV_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Dev-AP."
-              exit 1
-            fi
-            echo "Deploying Dev-AP with image tag: $DEV_IMAGE_AP"
-          else
-            echo "Dev environment is not selected for deployment."
+          # Check if Dev is selected
+          DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
+          if [[ -z "$DEV_SELECTED" ]]; then
+            echo "Dev environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract AP tag
+          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Dev Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          if [[ -z "$AP_TAG" ]]; then
+            echo "AP tag not provided for Dev. Exiting..."
+            exit 1
+          fi
+
+          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
+          echo "Extracted AP tag: $AP_TAG"
+
+      - name: Deploy to Dev AP
+        run: |
+          echo "Deploying Dev AP Region..."
+          echo "Using AP Tag: $AP_TAG"
