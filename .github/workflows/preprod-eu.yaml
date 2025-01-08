@@ -3,37 +3,39 @@ name: Preprod-EU Deployment
 on:
   pull_request:
     branches:
-      - preprod  # Only trigger on PRs targeting the 'preprod' branch
+      - preprod
 
 jobs:
-  deploy:
+  deploy-preprod-eu:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Preprod-EU..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
-          PREPROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
-          echo "PREPROD_IMAGE_EU=$PREPROD_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Preprod-EU
-        run: |
-          if [ "$PREPROD_SELECTED" == "Y" ]; then
-            if [ -z "$PREPROD_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Preprod-EU."
-              exit 1
-            fi
-            echo "Deploying Preprod-EU with image tag: $PREPROD_IMAGE_EU"
-          else
-            echo "Preprod environment is not selected for deployment."
+          # Check if Preprod is selected
+          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -i "Preprod: \`Y\`" || echo "")
+          if [[ -z "$PREPROD_SELECTED" ]]; then
+            echo "Preprod environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract EU tag
+          EU_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Preprod Environment\s+- \*\*EU Region:\*\* `)[^`]+')
+          if [[ -z "$EU_TAG" ]]; then
+            echo "EU tag not provided for Preprod. Exiting..."
+            exit 1
+          fi
+
+          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
+          echo "Extracted EU tag: $EU_TAG"
+
+      - name: Deploy to Preprod EU
+        run: |
+          echo "Deploying Preprod EU Region..."
+          echo "Using EU Tag: $EU_TAG"
