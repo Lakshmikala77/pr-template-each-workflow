@@ -1,4 +1,4 @@
-name: Dev-EU Deployment
+name: Deploy to Dev - EU Region
 
 on:
   pull_request:
@@ -8,32 +8,15 @@ on:
 jobs:
   deploy-dev-eu:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Dev - EU
         run: |
-          echo "Extracting PR details for Dev-EU..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
-          if [[ -z "$DEV_SELECTED" ]]; then
-            echo "Dev environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$EU_TAG" ]]; then
-            echo "EU tag not provided for Dev. Exiting..."
-            exit 1
-          fi
-
-          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
-          echo "Extracted EU tag: $EU_TAG"
-
-      - name: Deploy to Dev EU
-        run: |
-          echo "Deploying Dev EU Region..."
-          echo "Using EU Tag: $EU_TAG"
+          echo "Deploying to Dev EU Region with Image Tag: ${{ secrets.DEV_EU_IMAGE_TAG }}"

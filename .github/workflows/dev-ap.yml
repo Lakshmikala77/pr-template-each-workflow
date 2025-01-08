@@ -1,42 +1,22 @@
-name: Dev-AP Deployment
+name: Deploy to Dev - AP Region
 
 on:
   pull_request:
     branches:
-      - dev  # Ensures this workflow runs only for the 'dev' branch
+      - dev
 
 jobs:
   deploy-dev-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Dev - AP
         run: |
-          echo "Extracting PR details for Dev-AP..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Dev is selected
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
-          if [[ -z "$DEV_SELECTED" ]]; then
-            echo "Dev environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract AP tag using sed
-          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*AP Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$AP_TAG" ]]; then
-            echo "AP tag not provided for Dev. Exiting..."
-            exit 1
-          fi
-
-          # Save the extracted AP_TAG to GITHUB_ENV
-          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
-          echo "Extracted AP tag: $AP_TAG"
-
-      - name: Deploy to Dev AP
-        run: |
-          echo "Deploying Dev AP Region..."
-          echo "Using AP Tag: $AP_TAG"
+          echo "Deploying to Dev AP Region with Image Tag: ${{ secrets.DEV_AP_IMAGE_TAG }}"

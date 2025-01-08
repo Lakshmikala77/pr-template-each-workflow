@@ -1,4 +1,4 @@
-name: Dev-US Deployment
+name: Deploy to Dev - US Region
 
 on:
   pull_request:
@@ -9,32 +9,15 @@ on:
 jobs:
   deploy-dev-us:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Dev - US
         run: |
-          echo "Extracting PR details for Dev-US..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
-          if [[ -z "$DEV_SELECTED" ]]; then
-            echo "Dev environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          US_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*US Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$US_TAG" ]]; then
-            echo "US tag not provided for Dev. Exiting..."
-            exit 1
-          fi
-
-          echo "US_TAG=$US_TAG" >> $GITHUB_ENV
-          echo "Extracted US tag: $US_TAG"
-
-      - name: Deploy to Dev US
-        run: |
-          echo "Deploying Dev US Region..."
-          echo "Using US Tag: $US_TAG"
+          echo "Deploying to Dev US Region with Image Tag: ${{ secrets.DEV_US_IMAGE_TAG }}"

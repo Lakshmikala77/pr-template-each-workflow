@@ -1,4 +1,4 @@
-name: Prod-AP Deployment
+name: Deploy to Prod - AP Region
 
 on:
   pull_request:
@@ -8,34 +8,15 @@ on:
 jobs:
   deploy-prod-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Prod - AP
         run: |
-          echo "Extracting PR details for Prod-AP..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Prod is selected
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -i "Prod: \`Y\`" || echo "")
-          if [[ -z "$PROD_SELECTED" ]]; then
-            echo "Prod environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract AP tag using sed (avoiding lookbehind issues)
-          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*AP Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$AP_TAG" ]]; then
-            echo "AP tag not provided for Prod. Exiting..."
-            exit 1
-          fi
-
-          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
-          echo "Extracted AP tag: $AP_TAG"
-
-      - name: Deploy to Prod AP
-        run: |
-          echo "Deploying Prod AP Region..."
-          echo "Using AP Tag: $AP_TAG"
+          echo "Deploying to Prod AP Region with Image Tag: ${{ secrets.PROD_AP_IMAGE_TAG }}"

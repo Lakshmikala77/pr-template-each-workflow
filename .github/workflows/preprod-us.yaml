@@ -1,4 +1,4 @@
-name: Preprod-US Deployment
+name: Deploy to Preprod - US Region
 
 on:
   pull_request:
@@ -8,34 +8,15 @@ on:
 jobs:
   deploy-preprod-us:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Preprod - US
         run: |
-          echo "Extracting PR details for Preprod-US..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Preprod is selected
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -i "Preprod: \`Y\`" || echo "")
-          if [[ -z "$PREPROD_SELECTED" ]]; then
-            echo "Preprod environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract US tag
-          US_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*US Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$US_TAG" ]]; then
-            echo "US tag not provided for Preprod. Exiting..."
-            exit 1
-          fi
-
-          echo "US_TAG=$US_TAG" >> $GITHUB_ENV
-          echo "Extracted US tag: $US_TAG"
-
-      - name: Deploy to Preprod US
-        run: |
-          echo "Deploying Preprod US Region..."
-          echo "Using US Tag: $US_TAG"
+          echo "Deploying to Preprod US Region with Image Tag: ${{ secrets.PREPROD_US_IMAGE_TAG }}"

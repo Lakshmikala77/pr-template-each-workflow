@@ -1,4 +1,4 @@
-name: Prod-EU Deployment
+name: Deploy to Prod - EU Region
 
 on:
   pull_request:
@@ -8,34 +8,15 @@ on:
 jobs:
   deploy-prod-eu:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Prod - EU
         run: |
-          echo "Extracting PR details for Prod-EU..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Prod is selected
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -i "Prod: \`Y\`" || echo "")
-          if [[ -z "$PROD_SELECTED" ]]; then
-            echo "Prod environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract EU tag
-          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$EU_TAG" ]]; then
-            echo "EU tag not provided for Prod. Exiting..."
-            exit 1
-          fi
-
-          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
-          echo "Extracted EU tag: $EU_TAG"
-
-      - name: Deploy to Prod EU
-        run: |
-          echo "Deploying Prod EU Region..."
-          echo "Using EU Tag: $EU_TAG"
+          echo "Deploying to Prod EU Region with Image Tag: ${{ secrets.PROD_EU_IMAGE_TAG }}"

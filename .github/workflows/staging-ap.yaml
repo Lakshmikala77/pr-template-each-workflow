@@ -1,4 +1,4 @@
-name: Staging-AP Deployment
+name: Deploy to Staging - AP Region
 
 on:
   pull_request:
@@ -8,34 +8,15 @@ on:
 jobs:
   deploy-staging-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Staging - AP
         run: |
-          echo "Extracting PR details for Staging-AP..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Staging is selected
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
-          if [[ -z "$STAGING_SELECTED" ]]; then
-            echo "Staging environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract AP tag using sed
-          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*AP Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$AP_TAG" ]]; then
-            echo "AP tag not provided for Staging. Exiting..."
-            exit 1
-          fi
-
-          echo "AP_TAG=$AP_TAG" >> $GITHUB_ENV
-          echo "Extracted AP tag: $AP_TAG"
-
-      - name: Deploy to Staging AP
-        run: |
-          echo "Deploying Staging AP Region..."
-          echo "Using AP Tag: $AP_TAG"
+          echo "Deploying to Staging AP Region with Image Tag: ${{ secrets.STAGING_AP_IMAGE_TAG }}"

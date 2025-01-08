@@ -1,6 +1,7 @@
 # Select Environment
-- Dev: `N`
-- Staging: `Y`
+
+- Dev: `Y`
+- Staging: `N`
 - Preprod: `N`
 - Prod: `N`
 
