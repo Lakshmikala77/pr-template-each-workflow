@@ -18,14 +18,12 @@ jobs:
           echo "Extracting PR details for Dev-EU..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
 
-          # Check if Dev is selected
           DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
           if [[ -z "$DEV_SELECTED" ]]; then
             echo "Dev environment not selected for deployment. Skipping..."
             exit 0
           fi
 
-          # Extract EU tag
           EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
           if [[ -z "$EU_TAG" ]]; then
             echo "EU tag not provided for Dev. Exiting..."

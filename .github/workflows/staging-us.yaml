@@ -17,14 +17,12 @@ jobs:
           echo "Extracting PR details for Staging-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
 
-          # Check if Staging is selected
           STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
           if [[ -z "$STAGING_SELECTED" ]]; then
             echo "Staging environment not selected for deployment. Skipping..."
             exit 0
           fi
 
-          # Extract US tag
           US_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*US Region:\*\* `\([^`]*\)`/\1/p')
           if [[ -z "$US_TAG" ]]; then
             echo "US tag not provided for Staging. Exiting..."
