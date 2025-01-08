@@ -12,11 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+      - name: Extract image tag for Dev EU
+        run: |
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_DEV_EU=$(echo "$PR_BODY" | grep -oP '(?<=Dev: )[^\n]+' | xargs)
+          echo "Dev EU Image Tag: $IMAGE_TAG_DEV_EU"
+          echo "IMAGE_TAG_DEV_EU=$IMAGE_TAG_DEV_EU" >> $GITHUB_ENV
 
       - name: Deploy to Dev - EU
         run: |
-          echo "Deploying to Dev EU Region with Image Tag: ${{ secrets.DEV_EU_IMAGE_TAG }}"
+          echo "Deploying to Dev EU Region with Image Tag: $IMAGE_TAG_DEV_EU"
+          # Add your deployment command here, e.g., kubectl, docker, etc.
