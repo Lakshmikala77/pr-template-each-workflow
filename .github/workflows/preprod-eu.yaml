@@ -26,7 +26,7 @@ jobs:
           fi
 
           # Extract EU tag
-          EU_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Preprod Environment\s+- \*\*EU Region:\*\* `)[^`]+')
+          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
           if [[ -z "$EU_TAG" ]]; then
             echo "EU tag not provided for Preprod. Exiting..."
             exit 1
