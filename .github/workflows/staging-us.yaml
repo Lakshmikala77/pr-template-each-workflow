@@ -6,17 +6,22 @@ on:
       - staging
 
 jobs:
-  deploy-staging-ap:
+  deploy-staging-us:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+      - name: Extract image tag for Staging US
+        run: |
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_STAGING_US=$(echo "$PR_BODY" | grep -oP '(?<=Staging: )[^\n]+' | xargs)
+          echo "Staging US Image Tag: $IMAGE_TAG_STAGING_US"
+          echo "IMAGE_TAG_STAGING_US=$IMAGE_TAG_STAGING_US" >> $GITHUB_ENV
 
       - name: Deploy to Staging - US
         run: |
-          echo "Deploying to Staging US Region with Image Tag: ${{ secrets.STAGING_US_IMAGE_TAG }}"
+          echo "Deploying to Staging US Region with Image Tag: $IMAGE_TAG_STAGING_US"
+          # Add your deployment command here, e.g., kubectl, docker, etc.
