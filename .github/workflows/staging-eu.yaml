@@ -1,34 +1,27 @@
-name: Staging EU Deployment
+name: Deploy to Staging - EU Region
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - staging
 
 jobs:
-  deploy:
+  deploy-staging-eu:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract image tag for Staging EU
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
-          STAGING_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_STAGING_EU=$(echo "$PR_BODY" | grep -oP '(?<=Staging: )[^\n]+' | xargs)
+          echo "Staging EU Image Tag: $IMAGE_TAG_STAGING_EU"
+          echo "IMAGE_TAG_STAGING_EU=$IMAGE_TAG_STAGING_EU" >> $GITHUB_ENV
 
-          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
-          echo "STAGING_IMAGE_EU=$STAGING_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
+      - name: Deploy to Staging - EU
         run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Staging EU Region."
-              exit 1
-            fi
-            echo "Staging EU Region selected with image tag: $STAGING_IMAGE_EU"
-          else
-            echo "Staging EU Region not selected. Skipping deployment."
+          echo "Deploying to Staging EU Region with Image Tag: $IMAGE_TAG_STAGING_EU"
+          # Add your deployment command here, e.g., kubectl, docker, etc.

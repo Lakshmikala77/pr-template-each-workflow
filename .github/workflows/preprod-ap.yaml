@@ -1,34 +1,22 @@
-name: Preprod AP Deployment
+name: Deploy to Preprod - AP Region
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - preprod
 
 jobs:
-  deploy:
+  deploy-preprod-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Preprod - AP
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Preprod: `)[^`]+')
-          PREPROD_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Preprod Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "PREPROD_SELECTED=$PREPROD_SELECTED" >> $GITHUB_ENV
-          echo "PREPROD_IMAGE_AP=$PREPROD_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
-        run: |
-          if [ "$PREPROD_SELECTED" == "Y" ]; then
-            if [ -z "$PREPROD_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Preprod AP Region."
-              exit 1
-            fi
-            echo "Preprod AP Region selected with image tag: $PREPROD_IMAGE_AP"
-          else
-            echo "Preprod AP Region not selected. Skipping deployment."
+          echo "Deploying to Preprod AP Region with Image Tag: ${{ secrets.PREPROD_AP_IMAGE_TAG }}"

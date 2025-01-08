@@ -1,34 +1,27 @@
-name: Prod EU Deployment
-
+name: Deploy to Prod - US Region
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    branches:
+      - prod
+
 
 jobs:
-  deploy:
+  deploy-prod-us:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract image tag for Prod US
         run: |
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          PROD_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Prod: `)[^`]+')
-          PROD_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Prod Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_PROD_US=$(echo "$PR_BODY" | grep -oP '(?<=Prod: )[^\n]+' | xargs)
+          echo "Prod US Image Tag: $IMAGE_TAG_PROD_US"
+          echo "IMAGE_TAG_PROD_US=$IMAGE_TAG_PROD_US" >> $GITHUB_ENV
 
-          echo "PROD_SELECTED=$PROD_SELECTED" >> $GITHUB_ENV
-          echo "PROD_IMAGE_US=$PROD_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
+      - name: Deploy to Prod - US
         run: |
-          if [ "$PROD_SELECTED" == "Y" ]; then
-            if [ -z "$PROD_IMAGE_US" ]; then
-              echo "Error: Missing image tag value for Prod US Region."
-              exit 1
-            fi
-            echo "Prod US Region selected with image tag: $PROD_IMAGE_US"
-          else
-            echo "Prod US Region not selected. Skipping deployment."
+          echo "Deploying to Prod US Region with Image Tag: $IMAGE_TAG_PROD_US"
+          # Add your deployment command herde

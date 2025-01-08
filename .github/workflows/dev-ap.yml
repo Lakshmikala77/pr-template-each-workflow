@@ -1,39 +1,27 @@
-name: Dev AP Deployment
+name: Deploy to Dev - AP Region
 
 on:
   pull_request:
-    types: [opened, edited, reopened, submitted]
+    branches:
+      - dev
 
 jobs:
-  deploy:
+  deploy-dev-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract image tag for Dev AP
         run: |
-          # Extract the PR body
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_DEV_AP=$(echo "$PR_BODY" | grep -oP '(?<=Dev: )[^\n]+' | xargs)
+          echo "Dev AP Image Tag: $IMAGE_TAG_DEV_AP"
+          echo "IMAGE_TAG_DEV_AP=$IMAGE_TAG_DEV_AP" >> $GITHUB_ENV
 
-          # Extract selection and image tag for Dev AP
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Dev: `)[^`]+')
-          DEV_IMAGE_AP=$(echo "$PR_BODY" | grep -A 3 "Dev Environment" | grep "AP Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "DEV_SELECTED=$DEV_SELECTED" >> $GITHUB_ENV
-          echo "DEV_IMAGE_AP=$DEV_IMAGE_AP" >> $GITHUB_ENV
-
-      - name: Validate and Print Values
+      - name: Deploy to Dev - AP
         run: |
-          if [ "$DEV_SELECTED" == "Y" ]; then
-            if [ -z "$DEV_IMAGE_AP" ]; then
-              echo "Error: Missing image tag value for Dev AP Region."
-              exit 1
-            fi
-            echo "Dev AP Region selected with image tag: $DEV_IMAGE_AP"
-          else
-            echo "Dev AP Region not selected. Skipping deployment."
-          fi
+          echo "Deploying to Dev AP Region with Image Tag: $IMAGE_TAG_DEV_AP"
+          # Add your deployment command here, e.g., kubectl, docker, etc.
