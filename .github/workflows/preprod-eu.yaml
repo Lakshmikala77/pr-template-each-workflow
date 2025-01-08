@@ -1,4 +1,4 @@
-name: Preprod-EU Deployment
+name: Deploy to Preprod - EU Region
 
 on:
   pull_request:
@@ -6,36 +6,17 @@ on:
       - preprod
 
 jobs:
-  deploy-preprod-eu:
+  deploy-dev-ap:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Preprod - EU
         run: |
-          echo "Extracting PR details for Preprod-EU..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          # Check if Preprod is selected
-          PREPROD_SELECTED=$(echo "$PR_BODY" | grep -i "Preprod: \`Y\`" || echo "")
-          if [[ -z "$PREPROD_SELECTED" ]]; then
-            echo "Preprod environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          # Extract EU tag
-          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$EU_TAG" ]]; then
-            echo "EU tag not provided for Preprod. Exiting..."
-            exit 1
-          fi
-
-          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
-          echo "Extracted EU tag: $EU_TAG"
-
-      - name: Deploy to Preprod EU
-        run: |
-          echo "Deploying Preprod EU Region..."
-          echo "Using EU Tag: $EU_TAG"
+          echo "Deploying to Preprod EU  Region with Image Tag: ${{ secrets.PREPROD_EU_IMAGE_TAG }}"
