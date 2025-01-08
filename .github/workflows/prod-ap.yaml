@@ -25,8 +25,8 @@ jobs:
             exit 0
           fi
 
-          # Extract AP tag
-          AP_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Prod Environment\s+- \*\*AP Region:\*\* `)[^`]+')
+          # Extract AP tag using sed (avoiding lookbehind issues)
+          AP_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*AP Region:\*\* `\([^`]*\)`/\1/p')
           if [[ -z "$AP_TAG" ]]; then
             echo "AP tag not provided for Prod. Exiting..."
             exit 1
