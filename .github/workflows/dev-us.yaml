@@ -26,7 +26,8 @@ jobs:
           fi
 
           # Extract US tag
-          US_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Dev Environment\s+- \*\*US Region:\*\* `)[^`]+')
+          US_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*US Region:\*\* `\([^`]*\)`/\1/p')
+
           if [[ -z "$US_TAG" ]]; then
             echo "US tag not provided for Dev. Exiting..."
             exit 1
