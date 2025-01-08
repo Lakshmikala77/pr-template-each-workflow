@@ -6,7 +6,7 @@ on:
       - preprod
 
 jobs:
-  deploy-dev-ap:
+  deploy-preprod-ap:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
