@@ -1,4 +1,4 @@
-name: Staging-EU Deployment
+name: Deploy to Staging - EU Region
 
 on:
   pull_request:
@@ -8,32 +8,15 @@ on:
 jobs:
   deploy-staging-eu:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Extract PR Details
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Deploy to Staging - EU
         run: |
-          echo "Extracting PR details for Staging-EU..."
-          PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
-          if [[ -z "$STAGING_SELECTED" ]]; then
-            echo "Staging environment not selected for deployment. Skipping..."
-            exit 0
-          fi
-
-          EU_TAG=$(echo "$PR_BODY" | sed -n 's/.*\*\*EU Region:\*\* `\([^`]*\)`/\1/p')
-          if [[ -z "$EU_TAG" ]]; then
-            echo "EU tag not provided for Staging. Exiting..."
-            exit 1
-          fi
-
-          echo "EU_TAG=$EU_TAG" >> $GITHUB_ENV
-          echo "Extracted EU tag: $EU_TAG"
-
-      - name: Deploy to Staging EU
-        run: |
-          echo "Deploying Staging EU Region..."
-          echo "Using EU Tag: $EU_TAG"
+          echo "Deploying to Staging EU Region with Image Tag: ${{ secrets.STAGING_EU_IMAGE_TAG }}"
