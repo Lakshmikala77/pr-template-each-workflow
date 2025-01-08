@@ -3,37 +3,39 @@ name: Staging-US Deployment
 on:
   pull_request:
     branches:
-      - staging  # Only trigger on PRs targeting the 'staging' branch
+      - staging
 
 jobs:
-  deploy:
+  deploy-staging-us:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Staging-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          STAGING_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Staging: `)[^`]+')
-          STAGING_IMAGE_US=$(echo "$PR_BODY" | grep -A 3 "Staging Environment" | grep "US Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "STAGING_SELECTED=$STAGING_SELECTED" >> $GITHUB_ENV
-          echo "STAGING_IMAGE_US=$STAGING_IMAGE_US" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Staging-US
-        run: |
-          if [ "$STAGING_SELECTED" == "Y" ]; then
-            if [ -z "$STAGING_IMAGE_US" ]; then
-              echo "Error: Missing image tag value for Staging-US."
-              exit 1
-            fi
-            echo "Deploying Staging-US with image tag: $STAGING_IMAGE_US"
-          else
-            echo "Staging environment is not selected for deployment."
+          # Check if Staging is selected
+          STAGING_SELECTED=$(echo "$PR_BODY" | grep -i "Staging: \`Y\`" || echo "")
+          if [[ -z "$STAGING_SELECTED" ]]; then
+            echo "Staging environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract US tag
+          US_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Staging Environment\s+- \*\*US Region:\*\* `)[^`]+')
+          if [[ -z "$US_TAG" ]]; then
+            echo "US tag not provided for Staging. Exiting..."
+            exit 1
+          fi
+
+          echo "US_TAG=$US_TAG" >> $GITHUB_ENV
+          echo "Extracted US tag: $US_TAG"
+
+      - name: Deploy to Staging US
+        run: |
+          echo "Deploying Staging US Region..."
+          echo "Using US Tag: $US_TAG"
