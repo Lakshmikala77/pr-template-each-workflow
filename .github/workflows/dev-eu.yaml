@@ -1,39 +1,41 @@
-name: Dev-EU Deployment
+name: Dev-US Deployment
 
 on:
   pull_request:
     branches:
-      - dev  # Only trigger on PRs targeting the 'dev' branch
+      - dev
 
 jobs:
-  deploy:
+  deploy-dev-us:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Parse PR Body
-        id: parse_pr
+      - name: Extract PR Details
         run: |
+          echo "Extracting PR details for Dev-US..."
           PR_BODY=$(jq -r '.pull_request.body' < "$GITHUB_EVENT_PATH")
-          echo "PR_BODY=$PR_BODY"
 
-          DEV_SELECTED=$(echo "$PR_BODY" | grep -oP '(?<=- Dev: `)[^`]+')
-          DEV_IMAGE_EU=$(echo "$PR_BODY" | grep -A 3 "Dev Environment" | grep "EU Region:" | awk -F'`' '{print $2}' | tr -d '[:space:]')
-
-          echo "DEV_SELECTED=$DEV_SELECTED" >> $GITHUB_ENV
-          echo "DEV_IMAGE_EU=$DEV_IMAGE_EU" >> $GITHUB_ENV
-
-      - name: Validate and Deploy Dev-EU
-        run: |
-          if [ "$DEV_SELECTED" == "Y" ]; then
-            if [ -z "$DEV_IMAGE_EU" ]; then
-              echo "Error: Missing image tag value for Dev-EU."
-              exit 1
-            fi
-            echo "Deploying Dev-EU with image tag: $DEV_IMAGE_EU"
-          else
-            echo "Dev environment is not selected for deployment."
+          # Check if Dev is selected
+          DEV_SELECTED=$(echo "$PR_BODY" | grep -i "Dev: \`Y\`" || echo "")
+          if [[ -z "$DEV_SELECTED" ]]; then
+            echo "Dev environment not selected for deployment. Skipping..."
             exit 0
           fi
+
+          # Extract US tag
+          US_TAG=$(echo "$PR_BODY" | grep -oP '(?<=### Dev Environment\s+- \*\*US Region:\*\* `)[^`]+')
+          if [[ -z "$US_TAG" ]]; then
+            echo "US tag not provided for Dev. Exiting..."
+            exit 1
+          fi
+
+          echo "US_TAG=$US_TAG" >> $GITHUB_ENV
+          echo "Extracted US tag: $US_TAG"
+
+      - name: Deploy to Dev US
+        run: |
+          echo "Deploying Dev US Region..."
+          echo "Using US Tag: $US_TAG"
