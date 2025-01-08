@@ -12,11 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+      - name: Extract image tag for Staging EU
+        run: |
+          PR_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }})
+          
+          IMAGE_TAG_STAGING_EU=$(echo "$PR_BODY" | grep -oP '(?<=Staging: )[^\n]+' | xargs)
+          echo "Staging EU Image Tag: $IMAGE_TAG_STAGING_EU"
+          echo "IMAGE_TAG_STAGING_EU=$IMAGE_TAG_STAGING_EU" >> $GITHUB_ENV
 
       - name: Deploy to Staging - EU
         run: |
-          echo "Deploying to Staging EU Region with Image Tag: ${{ secrets.STAGING_EU_IMAGE_TAG }}"
+          echo "Deploying to Staging EU Region with Image Tag: $IMAGE_TAG_STAGING_EU"
+          # Add your deployment command here, e.g., kubectl, docker, etc.
